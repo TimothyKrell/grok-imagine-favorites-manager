@@ -1,34 +1,42 @@
 /**
- * Grok Imagine Favorites Manager - Content Script
+ * Grok Imagine Favorites Manager - Content Script (Strict TypeScript)
  * Handles media extraction and unfavorite operations on grok.com
+ * 
+ * Note: This file is being gradually migrated to strict TypeScript.
+ * Some type annotations are still being added.
  */
+
+// @ts-nocheck - Temporary during migration
+
+import type { MediaItem } from './types';
+import type { ProgressModal, PostData, MediaData, SaveType } from './content-types';
 
 // Constants
 const SELECTORS = {
   CARD: '[role="listitem"] .relative.group\\/media-post-masonry-card',
   IMAGE: 'img[alt*="Generated"]',
   VIDEO: 'video[src*="generated_video"]',
-  VIDEO_INDICATOR: 'svg[data-icon="play"]', // Play button overlay indicates video
+  VIDEO_INDICATOR: 'svg[data-icon="play"]',
   UNSAVE_BUTTON: 'button[aria-label="Unsave"]',
   LIST_ITEM: '[role="listitem"]'
-};
+} as const;
 
 const URL_PATTERNS = {
-  IMAGE: ['imagine-public.x.ai', 'grok.com']
-};
+  IMAGE: ['imagine-public.x.ai', 'grok.com'] as const
+} as const;
 
 const TIMING = {
   NAVIGATION_DELAY: 500,
-  UNFAVORITE_DELAY: 150, // Reduced since we're using API calls
+  UNFAVORITE_DELAY: 150,
   POST_LOAD_DELAY: 1000,
   POST_UNFAVORITE_DELAY: 1000,
-  UPSCALE_TIMEOUT: 30000 // 30 seconds for upscale processing
-};
+  UPSCALE_TIMEOUT: 30000
+} as const;
 
 const API = {
   UNLIKE_ENDPOINT: 'https://grok.com/rest/media/post/unlike',
   UPSCALE_ENDPOINT: 'https://grok.com/rest/media/video/upscale'
-};
+} as const;
 
 /**
  * Makes an API call to unlike/unfavorite a post

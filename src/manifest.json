@@ -11,10 +11,11 @@
   "content_scripts": [
     {
       "matches": ["https://grok.com/imagine/*"],
-      "js": ["src/content.js"]
+      "js": ["src/content.ts"]
     }
   ],
   "background": {
-    "service_worker": "src/background.js"
+    "service_worker": "src/background.ts",
+    "type": "module"
   }
 }

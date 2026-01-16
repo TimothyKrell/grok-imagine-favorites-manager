@@ -1,0 +1,143 @@
+/**
+ * Styles for the full-screen tab view
+ */
+
+/* Tab Container */
+.tab-container {
+  min-height: 100vh;
+  background: #0a0a0a;
+  color: #e5e5e5;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Tab Header */
+.tab-header {
+  background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
+  border-bottom: 1px solid #2a2a2a;
+  padding: 32px 48px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  backdrop-filter: blur(8px);
+}
+
+.tab-header-content {
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+.tab-header h1 {
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -1px;
+  margin: 0 0 8px 0;
+  background: linear-gradient(135deg, #fff 0%, #888 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.tab-subtitle {
+  font-size: 16px;
+  color: #888;
+  margin: 0;
+}
+
+/* Tab Content Wrapper */
+.tab-content-wrapper {
+  flex: 1;
+  max-width: 1600px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* Override media-grid for full-width view */
+.media-grid-fullwidth {
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)) !important;
+  gap: 16px !important;
+  padding: 24px 0;
+}
+
+/* Responsive breakpoints for tab view */
+@media (min-width: 1400px) {
+  .media-grid-fullwidth {
+    grid-template-columns: repeat(6, 1fr) !important;
+  }
+}
+
+@media (min-width: 1200px) and (max-width: 1399px) {
+  .media-grid-fullwidth {
+    grid-template-columns: repeat(5, 1fr) !important;
+  }
+}
+
+@media (min-width: 900px) and (max-width: 1199px) {
+  .media-grid-fullwidth {
+    grid-template-columns: repeat(4, 1fr) !important;
+  }
+}
+
+@media (max-width: 899px) {
+  .media-grid-fullwidth {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+}
+
+/* Tab Footer */
+.tab-footer {
+  padding: 24px 48px;
+  text-align: center;
+  font-size: 13px;
+  color: #666;
+  border-top: 1px solid #2a2a2a;
+  background: #0f0f0f;
+}
+
+.tab-footer a {
+  color: #888;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.tab-footer a:hover {
+  color: #e5e5e5;
+  text-decoration: underline;
+}
+
+.tab-footer-divider {
+  margin: 0 12px;
+  color: #333;
+}
+
+/* Adjust media grid header for tab view */
+.tab-container .media-grid-header {
+  padding: 24px 0;
+  border-bottom: 1px solid #2a2a2a;
+  margin-bottom: 0;
+}
+
+/* Adjust bulk actions for tab view */
+.tab-container .bulk-actions-toolbar {
+  position: sticky;
+  top: 97px; /* Below the tab header */
+  margin: 0 -24px;
+  padding: 16px 24px;
+}
+
+/* Make the whole media grid tab look better in full screen */
+.tab-container .media-grid-tab {
+  height: auto;
+  min-height: calc(100vh - 200px);
+}
+
+/* Empty state styling for tab */
+.tab-container .empty-state {
+  padding: 120px 20px;
+}
+
+/* Loading container for tab */
+.tab-container .loading-container {
+  padding: 120px 20px;
+}
