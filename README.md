@@ -39,30 +39,63 @@ A modern Chrome extension to download and manage your favorited Grok Imagine ima
 
 ## Installation
 
-### Step 1: Clone the Repository
+### Development Setup (With Hot Reload)
 
-First, clone this repository to your local machine:
+For development with automatic hot reloading:
+
+1. **Clone the Repository**
+   ```bash
+   git clone https://github.com/brndnsmth/grok-imagine-favorites-manager.git
+   cd grok-imagine-favorites-manager
+   ```
+
+2. **Install Dependencies**
+   ```bash
+   bun install
+   ```
+
+3. **Start Development Server**
+   ```bash
+   bun run dev
+   ```
+   This will start Vite in watch mode, and changes will automatically reload in the browser.
+
+4. **Load Extension in Chrome**
+   - Open Chrome and navigate to `chrome://extensions/`
+   - Enable **Developer mode** (toggle in top-right)
+   - Click **"Load unpacked"**
+   - Select the `dist` folder that was created by Vite
+   - The extension will automatically reload when you make changes!
+
+### Production Build
+
+To create a production build:
 
 ```bash
-git clone https://github.com/brndnsmth/grok-imagine-favorites-manager.git
+bun run build
 ```
 
-This will create a folder called `grok-imagine-favorites-manager` containing all the extension files.
+The built extension will be in the `dist` folder, ready to load as an unpacked extension or package for distribution.
 
-Alternatively, you can download the repository as a ZIP file:
-1. Go to https://github.com/brndnsmth/grok-imagine-favorites-manager
-2. Click the green "Code" button
-3. Select "Download ZIP"
-4. Extract the ZIP file to a folder on your computer
+### Simple Installation (No Development Setup)
 
-### Step 2: Load the Extension in Chrome
+If you just want to use the extension without development tools:
 
-1. Open Google Chrome
-2. Navigate to `chrome://extensions/` (or go to Menu → Extensions → Manage Extensions)
-3. Enable **Developer mode** by toggling the switch in the top-right corner
-4. Click the **"Load unpacked"** button that appears
-5. Navigate to and select the `grok-imagine-favorites-manager` folder you cloned/downloaded
-6. The extension should now appear in your extensions list
+1. **Clone or Download**
+   - Clone: `git clone https://github.com/brndnsmth/grok-imagine-favorites-manager.git`
+   - Or download as ZIP and extract
+
+2. **Build the Extension**
+   ```bash
+   bun install
+   bun run build
+   ```
+
+3. **Load in Chrome**
+   - Navigate to `chrome://extensions/`
+   - Enable **Developer mode**
+   - Click **"Load unpacked"**
+   - Select the `dist` folder
 
 ### Step 3: Pin the Extension (Optional but Recommended)
 
