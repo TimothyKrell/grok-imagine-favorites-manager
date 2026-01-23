@@ -21,6 +21,8 @@ const MediaGridTab: Component<MediaGridTabProps> = (props) => {
   const [isProcessing, setIsProcessing] = createSignal<boolean>(false);
   const [isUpscaling, setIsUpscaling] = createSignal<boolean>(false);
   const [upscaleProgress, setUpscaleProgress] = createSignal<string>('');
+  const [isUnfavoriting, setIsUnfavoriting] = createSignal<boolean>(false);
+  const [unfavoriteProgress, setUnfavoriteProgress] = createSignal<string>('');
   const [error, setError] = createSignal<string>('');
   const [nextCursor, setNextCursor] = createSignal<string | undefined>(undefined);
   const [hasMore, setHasMore] = createSignal<boolean>(false);
@@ -28,6 +30,7 @@ const MediaGridTab: Component<MediaGridTabProps> = (props) => {
   const [isLoadingAll, setIsLoadingAll] = createSignal<boolean>(false);
   const [loadAllProgress, setLoadAllProgress] = createSignal<string>('');
   const [thumbnailSize, setThumbnailSize] = createSignal<'small' | 'medium' | 'large'>('medium');
+  const [lastSelectedIndex, setLastSelectedIndex] = createSignal<number>(-1);
 
   /**
    * Sorted posts based on current sort order (client-side)
@@ -131,24 +134,54 @@ const MediaGridTab: Component<MediaGridTabProps> = (props) => {
   };
 
   /**
-   * Toggle selection for a post
+   * Toggle selection for a post (supports shift-click for range selection)
    */
-  const toggleSelection = (postId: string) => {
-    console.log('toggleSelection called for:', postId);
+  const toggleSelection = (postId: string, shiftKey: boolean = false) => {
+    console.log('toggleSelection called for:', postId, 'shiftKey:', shiftKey);
     const currentSelection = selectedPostIds();
     console.log('Current selection size:', currentSelection.size);
     
-    const newSelection = new Set(currentSelection);
-    if (newSelection.has(postId)) {
-      console.log('Removing from selection');
-      newSelection.delete(postId);
-    } else {
-      console.log('Adding to selection');
-      newSelection.add(postId);
-    }
+    // Get the index of the clicked post in the sorted array
+    const sortedPostsArray = sortedPosts();
+    const currentIndex = sortedPostsArray.findIndex(p => p.id === postId);
     
-    console.log('New selection size:', newSelection.size);
-    setSelectedPostIds(newSelection);
+    if (shiftKey && lastSelectedIndex() >= 0 && currentIndex >= 0) {
+      // Shift-click: select range
+      console.log('Shift-click range selection from', lastSelectedIndex(), 'to', currentIndex);
+      const newSelection = new Set(currentSelection);
+      
+      const startIndex = Math.min(lastSelectedIndex(), currentIndex);
+      const endIndex = Math.max(lastSelectedIndex(), currentIndex);
+      
+      // Select all items in the range
+      for (let i = startIndex; i <= endIndex; i++) {
+        const post = sortedPostsArray[i];
+        if (post) {
+          newSelection.add(post.id);
+        }
+      }
+      
+      console.log('Range selected, new selection size:', newSelection.size);
+      setSelectedPostIds(newSelection);
+    } else {
+      // Normal click: toggle single item
+      const newSelection = new Set(currentSelection);
+      if (newSelection.has(postId)) {
+        console.log('Removing from selection');
+        newSelection.delete(postId);
+      } else {
+        console.log('Adding to selection');
+        newSelection.add(postId);
+      }
+      
+      console.log('New selection size:', newSelection.size);
+      setSelectedPostIds(newSelection);
+      
+      // Update last selected index for future shift-clicks
+      if (currentIndex >= 0) {
+        setLastSelectedIndex(currentIndex);
+      }
+    }
   };
 
   /**
@@ -290,20 +323,28 @@ const MediaGridTab: Component<MediaGridTabProps> = (props) => {
     if (!confirmed) return;
 
     setIsProcessing(true);
+    setIsUnfavoriting(true);
+    setUnfavoriteProgress('Starting...');
 
     try {
-      const result = await unfavoritePosts(selected);
+      const result = await unfavoritePosts(selected, (completed, total) => {
+        setUnfavoriteProgress(`Unfavoriting ${completed}/${total} items...`);
+      });
       
       if (result.success > 0) {
         // Remove unfavorited posts from the list
         setPosts(posts().filter(post => !selected.includes(post.id)));
         deselectAll();
       }
+      
+      setUnfavoriteProgress('');
     } catch (err) {
       console.error('Error unfavoriting:', err);
       alert('Failed to unfavorite items. Please try again.');
     } finally {
       setIsProcessing(false);
+      setIsUnfavoriting(false);
+      setUnfavoriteProgress('');
     }
   };
 
@@ -479,6 +520,8 @@ const MediaGridTab: Component<MediaGridTabProps> = (props) => {
         isProcessing={isProcessing()}
         isUpscaling={isUpscaling()}
         upscaleProgress={upscaleProgress()}
+        isUnfavoriting={isUnfavoriting()}
+        unfavoriteProgress={unfavoriteProgress()}
       />
 
       {/* Error Message */}

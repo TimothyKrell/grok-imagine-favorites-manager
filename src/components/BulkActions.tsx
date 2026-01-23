@@ -96,7 +96,7 @@ const BulkActions: Component<BulkActionsProps> = (props) => {
           </div>
         </div>
 
-        <Show when={props.isProcessing}>
+        <Show when={props.isProcessing && !props.isUpscaling && !props.isUnfavoriting}>
           <div class="bulk-actions-progress">
             Processing...
           </div>
@@ -105,6 +105,12 @@ const BulkActions: Component<BulkActionsProps> = (props) => {
         <Show when={props.isUpscaling}>
           <div class="bulk-actions-progress">
             {props.upscaleProgress || 'Upscaling videos...'}
+          </div>
+        </Show>
+
+        <Show when={props.isUnfavoriting}>
+          <div class="bulk-actions-progress">
+            {props.unfavoriteProgress || 'Unfavoriting items...'}
           </div>
         </Show>
       </div>

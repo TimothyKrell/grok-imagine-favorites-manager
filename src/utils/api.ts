@@ -134,20 +134,33 @@ export async function unfavoritePost(postId: string): Promise<boolean> {
 }
 
 /**
- * Unfavorite multiple posts
+ * Unfavorite multiple posts with progress tracking
  */
-export async function unfavoritePosts(postIds: readonly string[]): Promise<{ success: number; failed: number }> {
+export async function unfavoritePosts(
+  postIds: readonly string[],
+  onProgress?: (completed: number, total: number) => void
+): Promise<{ success: number; failed: number }> {
   let success = 0;
   let failed = 0;
+  const total = postIds.length;
 
   // Process with small delays to avoid rate limiting
-  for (const postId of postIds) {
+  for (let i = 0; i < postIds.length; i++) {
+    const postId = postIds[i];
+    if (!postId) {
+      failed++;
+      continue;
+    }
+    
     const result = await unfavoritePost(postId);
     if (result) {
       success++;
     } else {
       failed++;
     }
+    
+    // Report progress
+    if (onProgress) onProgress(i + 1, total);
     
     // Small delay between requests (150ms)
     await new Promise(resolve => setTimeout(resolve, 150));

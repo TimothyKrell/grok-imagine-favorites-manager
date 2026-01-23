@@ -55,7 +55,7 @@ export interface MediaThumbnailProps {
   readonly post: MediaPost;
   readonly isSelected: boolean;
   readonly isDownloaded: boolean;
-  readonly onToggleSelect: (postId: string) => void;
+  readonly onToggleSelect: (postId: string, shiftKey?: boolean) => void;
 }
 
 export interface BulkActionsProps {
@@ -69,6 +69,8 @@ export interface BulkActionsProps {
   readonly isProcessing: boolean;
   readonly isUpscaling?: boolean;
   readonly upscaleProgress?: string;
+  readonly isUnfavoriting?: boolean;
+  readonly unfavoriteProgress?: string;
 }
 
 // Download Types

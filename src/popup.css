@@ -336,6 +336,10 @@ button.danger:hover {
   grid-template-columns: repeat(3, 1fr);
   gap: 12px;
   padding: 12px;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
 }
 
 /* ============================================
@@ -351,6 +355,10 @@ button.danger:hover {
   transition: all 0.2s ease;
   border: 2px solid transparent;
   background: #1a1a1a;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
 }
 
 .media-thumbnail:hover {

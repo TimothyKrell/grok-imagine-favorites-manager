@@ -9,13 +9,25 @@ import type { MediaThumbnailProps } from '../types/media';
 const MediaThumbnail: Component<MediaThumbnailProps> = (props) => {
   const handleCheckboxChange = (e: Event) => {
     e.stopPropagation();
+    const mouseEvent = e as MouseEvent;
+    
+    // Prevent default browser selection on shift-click
+    if (mouseEvent.shiftKey) {
+      e.preventDefault();
+    }
+    
     console.log('Checkbox clicked for:', props.post.id);
-    props.onToggleSelect(props.post.id);
+    props.onToggleSelect(props.post.id, mouseEvent.shiftKey);
   };
 
-  const handleThumbnailClick = () => {
-    console.log('Thumbnail clicked for:', props.post.id);
-    props.onToggleSelect(props.post.id);
+  const handleThumbnailClick = (e: MouseEvent) => {
+    // Prevent default browser selection on shift-click
+    if (e.shiftKey) {
+      e.preventDefault();
+    }
+    
+    console.log('Thumbnail clicked for:', props.post.id, 'shiftKey:', e.shiftKey);
+    props.onToggleSelect(props.post.id, e.shiftKey);
   };
 
   const handleOpenInGrok = (e: Event) => {
