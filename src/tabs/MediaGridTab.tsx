@@ -2,10 +2,10 @@
  * Media Grid Tab - API-based media browser with bulk operations
  */
 
-import { createSignal, onMount, For, Show, type Component } from 'solid-js';
+import { createSignal, createMemo, onMount, For, Show, type Component } from 'solid-js';
 import MediaThumbnail from '../components/MediaThumbnail';
 import BulkActions from '../components/BulkActions';
-import { fetchMediaPosts, unfavoritePosts } from '../utils/api';
+import { fetchMediaPosts, unfavoritePosts, upscaleVideos, checkPostsHDStatus } from '../utils/api';
 import { getDownloadedMedia, clearAllDownloadTracking } from '../utils/storage';
 import type { MediaPost, DownloadType } from '../types/media';
 
@@ -19,9 +19,68 @@ const MediaGridTab: Component<MediaGridTabProps> = (props) => {
   const [downloadedPostIds, setDownloadedPostIds] = createSignal<Set<string>>(new Set());
   const [isLoading, setIsLoading] = createSignal<boolean>(false);
   const [isProcessing, setIsProcessing] = createSignal<boolean>(false);
+  const [isUpscaling, setIsUpscaling] = createSignal<boolean>(false);
+  const [upscaleProgress, setUpscaleProgress] = createSignal<string>('');
   const [error, setError] = createSignal<string>('');
   const [nextCursor, setNextCursor] = createSignal<string | undefined>(undefined);
   const [hasMore, setHasMore] = createSignal<boolean>(false);
+  const [sortOrder, setSortOrder] = createSignal<'newest' | 'oldest'>('newest');
+  const [isLoadingAll, setIsLoadingAll] = createSignal<boolean>(false);
+  const [loadAllProgress, setLoadAllProgress] = createSignal<string>('');
+  const [thumbnailSize, setThumbnailSize] = createSignal<'small' | 'medium' | 'large'>('medium');
+
+  /**
+   * Sorted posts based on current sort order (client-side)
+   */
+  const sortedPosts = createMemo(() => {
+    const allPosts = posts();
+    const order = sortOrder();
+    
+    // Create a copy and sort by createdAt timestamp
+    return [...allPosts].sort((a, b) => {
+      if (order === 'newest') {
+        return b.createdAt - a.createdAt; // Newest first (descending)
+      } else {
+        return a.createdAt - b.createdAt; // Oldest first (ascending)
+      }
+    });
+  });
+
+  /**
+   * Check HD status for posts with videos
+   */
+  const checkHDStatus = (postsToCheck: MediaPost[]) => {
+    console.log(`[MediaGridTab] checkHDStatus called with ${postsToCheck.length} posts`);
+    const postsWithVideos = postsToCheck.filter(p => p.videoCount > 0);
+    console.log(`[MediaGridTab] Filtered to ${postsWithVideos.length} posts with videos`);
+    
+    if (postsWithVideos.length === 0) {
+      console.log(`[MediaGridTab] No posts with videos, skipping HD check`);
+      return;
+    }
+
+    try {
+      console.log(`[MediaGridTab] Calling checkPostsHDStatus...`);
+      const statusMap = checkPostsHDStatus(postsWithVideos);
+      console.log(`[MediaGridTab] Got status map with ${statusMap.size} entries`);
+      
+      // Update posts with HD status
+      setPosts(currentPosts => {
+        console.log(`[MediaGridTab] Updating posts with HD status...`);
+        return currentPosts.map(post => {
+          const hdStatus = statusMap.get(post.id);
+          if (hdStatus) {
+            console.log(`[MediaGridTab] Setting ${post.id} HD status to ${hdStatus}`);
+            return { ...post, hdStatus };
+          }
+          return post;
+        });
+      });
+      console.log(`[MediaGridTab] Posts updated with HD status`);
+    } catch (err) {
+      console.error('[MediaGridTab] Error checking HD status:', err);
+    }
+  };
 
   /**
    * Load media posts from API
@@ -34,16 +93,21 @@ const MediaGridTab: Component<MediaGridTabProps> = (props) => {
       const params = cursor ? { cursor, limit: 50 } : { limit: 50 };
       const response = await fetchMediaPosts(params);
       
+      const newPosts = response.posts as MediaPost[];
+      
       if (cursor) {
         // Append to existing posts (pagination)
-        setPosts([...posts(), ...(response.posts as MediaPost[])]);
+        setPosts([...posts(), ...newPosts]);
       } else {
         // Replace posts (initial load)
-        setPosts([...(response.posts as MediaPost[])]);
+        setPosts([...newPosts]);
       }
 
       setNextCursor(response.nextCursor);
       setHasMore(response.hasMore);
+
+      // Check HD status in background (non-blocking)
+      checkHDStatus(newPosts);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load media';
       setError(errorMessage);
@@ -100,6 +164,69 @@ const MediaGridTab: Component<MediaGridTabProps> = (props) => {
    */
   const deselectAll = () => {
     setSelectedPostIds(new Set<string>());
+  };
+
+  /**
+   * Toggle sort order between newest and oldest (client-side)
+   */
+  const toggleSortOrder = () => {
+    setSortOrder(sortOrder() === 'newest' ? 'oldest' : 'newest');
+  };
+
+  /**
+   * Load all pages of media posts
+   */
+  const loadAllPosts = async () => {
+    if (isLoadingAll()) return;
+
+    setIsLoadingAll(true);
+    setLoadAllProgress('Starting...');
+    
+    try {
+      // Start fresh
+      const allPosts: MediaPost[] = [];
+      let cursor: string | undefined = undefined;
+      let pageCount = 0;
+      let hasMorePages = true;
+
+      while (hasMorePages) {
+        pageCount++;
+        setLoadAllProgress(`Loading page ${pageCount}...`);
+
+        const params = cursor ? { cursor, limit: 50 } : { limit: 50 };
+        const response = await fetchMediaPosts(params);
+
+        allPosts.push(...(response.posts as MediaPost[]));
+        
+        cursor = response.nextCursor;
+        hasMorePages = response.hasMore && !!cursor;
+
+        // Update UI with progress
+        setLoadAllProgress(`Loaded ${allPosts.length} items (page ${pageCount})...`);
+      }
+
+      // Update state with all posts
+      setPosts(allPosts);
+      setNextCursor(undefined);
+      setHasMore(false);
+      
+      setLoadAllProgress(`Complete! Loaded ${allPosts.length} items from ${pageCount} pages. Checking HD status...`);
+      
+      // Check HD status in background
+      checkHDStatus(allPosts);
+      
+      // Clear progress after 2 seconds
+      setTimeout(() => {
+        setLoadAllProgress('');
+      }, 2000);
+
+    } catch (err) {
+      console.error('Error loading all posts:', err);
+      alert('Failed to load all posts. Please try again.');
+      setLoadAllProgress('');
+    } finally {
+      setIsLoadingAll(false);
+    }
   };
 
   /**
@@ -181,6 +308,60 @@ const MediaGridTab: Component<MediaGridTabProps> = (props) => {
   };
 
   /**
+   * Upscale selected videos
+   */
+  const upscaleSelected = async () => {
+    const selectedPosts = getSelectedPosts();
+    if (selectedPosts.length === 0) return;
+
+    // Collect all video URLs from selected posts
+    const videoUrls: string[] = [];
+    for (const post of selectedPosts) {
+      if (post.videoUrls) {
+        videoUrls.push(...post.videoUrls);
+      }
+    }
+
+    if (videoUrls.length === 0) {
+      alert('No videos found in selected items');
+      return;
+    }
+
+    const confirmed = confirm(
+      `Found ${videoUrls.length} video${videoUrls.length === 1 ? '' : 's'} in ${selectedPosts.length} selected item${selectedPosts.length === 1 ? '' : 's'}.\n\nUpscale all videos to HD?`
+    );
+    if (!confirmed) return;
+
+    setIsUpscaling(true);
+    setUpscaleProgress('Checking videos...');
+
+    try {
+      const result = await upscaleVideos(videoUrls, (completed, total) => {
+        setUpscaleProgress(`Processing ${completed}/${total} videos...`);
+      });
+
+      setUpscaleProgress('Refreshing HD status...');
+      
+      // Refresh HD status for selected posts (synchronous)
+      checkHDStatus(selectedPosts);
+      
+      setUpscaleProgress('');
+      deselectAll();
+
+      // Show summary
+      const message = `Upscaling complete!\n\nSucceeded: ${result.success}\nSkipped (already HD): ${result.skipped}\nFailed: ${result.failed}`;
+      alert(message);
+      console.log('Upscale result:', result);
+    } catch (err) {
+      console.error('Error upscaling:', err);
+      alert('Failed to upscale videos. Please try again.');
+    } finally {
+      setIsUpscaling(false);
+      setUpscaleProgress('');
+    }
+  };
+
+  /**
    * Clear download tracking
    */
   const handleClearTracking = async () => {
@@ -218,13 +399,57 @@ const MediaGridTab: Component<MediaGridTabProps> = (props) => {
         <div class="media-grid-title">
           <h3>Media Browser</h3>
           <p class="media-grid-subtitle">
-            {posts().length} item{posts().length === 1 ? '' : 's'} loaded
+            {posts().length} item{posts().length === 1 ? '' : 's'} loaded • Sorted by {sortOrder() === 'newest' ? 'Newest' : 'Oldest'}
           </p>
         </div>
         
         <div class="media-grid-actions">
+          {/* Thumbnail Size Selector (only in fullscreen) */}
+          <Show when={props.fullWidth}>
+            <div class="size-selector">
+              <label class="size-selector-label">Size:</label>
+              <div class="size-selector-buttons">
+                <button 
+                  class={`size-btn ${thumbnailSize() === 'small' ? 'active' : ''}`}
+                  onClick={() => setThumbnailSize('small')}
+                  title="Small thumbnails"
+                >
+                  S
+                </button>
+                <button 
+                  class={`size-btn ${thumbnailSize() === 'medium' ? 'active' : ''}`}
+                  onClick={() => setThumbnailSize('medium')}
+                  title="Medium thumbnails"
+                >
+                  M
+                </button>
+                <button 
+                  class={`size-btn ${thumbnailSize() === 'large' ? 'active' : ''}`}
+                  onClick={() => setThumbnailSize('large')}
+                  title="Large thumbnails"
+                >
+                  L
+                </button>
+              </div>
+            </div>
+          </Show>
+
+          <button class="btn-secondary" onClick={toggleSortOrder} disabled={posts().length === 0} title={`Sort by ${sortOrder() === 'newest' ? 'oldest' : 'newest'} first`}>
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style="margin-right: 4px;">
+              <Show when={sortOrder() === 'newest'}>
+                <path d="M8 3L4 7h3v6h2V7h3L8 3z"/>
+              </Show>
+              <Show when={sortOrder() === 'oldest'}>
+                <path d="M8 13l4-4H9V3H7v6H4l4 4z"/>
+              </Show>
+            </svg>
+            {sortOrder() === 'newest' ? 'Newest' : 'Oldest'}
+          </button>
           <button class="btn-secondary" onClick={selectAll} disabled={posts().length === 0}>
             Select All
+          </button>
+          <button class="btn-primary" onClick={loadAllPosts} disabled={isLoading() || isLoadingAll()}>
+            {isLoadingAll() ? 'Loading All...' : 'Load All'}
           </button>
           <button class="btn-secondary" onClick={() => loadPosts()} disabled={isLoading()}>
             {isLoading() ? 'Loading...' : 'Refresh'}
@@ -235,15 +460,25 @@ const MediaGridTab: Component<MediaGridTabProps> = (props) => {
         </div>
       </div>
 
+      {/* Load All Progress */}
+      <Show when={loadAllProgress()}>
+        <div class="load-all-progress">
+          {loadAllProgress()}
+        </div>
+      </Show>
+
       {/* Bulk Actions Toolbar */}
       <BulkActions
         selectedCount={selectedPostIds().size}
         onDownloadImages={() => downloadSelected('images')}
         onDownloadVideos={() => downloadSelected('videos')}
         onDownloadBoth={() => downloadSelected('both')}
+        onUpscaleVideos={upscaleSelected}
         onUnfavorite={unfavoriteSelected}
         onDeselectAll={deselectAll}
         isProcessing={isProcessing()}
+        isUpscaling={isUpscaling()}
+        upscaleProgress={upscaleProgress()}
       />
 
       {/* Error Message */}
@@ -279,8 +514,8 @@ const MediaGridTab: Component<MediaGridTabProps> = (props) => {
 
       {/* Media Grid */}
       <Show when={posts().length > 0}>
-        <div class={props.fullWidth ? "media-grid media-grid-fullwidth" : "media-grid"}>
-          <For each={posts()}>
+        <div class={`media-grid ${props.fullWidth ? 'media-grid-fullwidth' : ''} media-grid-${thumbnailSize()}`}>
+          <For each={sortedPosts()}>
             {(post) => (
               <MediaThumbnail
                 post={post}

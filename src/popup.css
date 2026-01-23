@@ -278,7 +278,7 @@ button.danger:hover {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 20px;
+  padding: 16px 12px;
   border-bottom: 1px solid #2a2a2a;
   background: #0f0f0f;
 }
@@ -335,7 +335,7 @@ button.danger:hover {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 12px;
-  padding: 16px;
+  padding: 12px;
 }
 
 /* ============================================
@@ -441,6 +441,40 @@ button.danger:hover {
   font-weight: 600;
 }
 
+.thumbnail-hd-badge {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  z-index: 10;
+  backdrop-filter: blur(8px);
+  color: #fff;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.thumbnail-hd-badge.hd-all {
+  background: rgba(34, 197, 94, 0.9);
+  border: 1px solid rgba(34, 197, 94, 1);
+}
+
+.thumbnail-hd-badge.hd-partial {
+  background: rgba(251, 191, 36, 0.9);
+  border: 1px solid rgba(251, 191, 36, 1);
+  color: #0a0a0a;
+}
+
+.thumbnail-hd-badge.hd-none {
+  background: rgba(239, 68, 68, 0.9);
+  border: 1px solid rgba(239, 68, 68, 1);
+}
+
 .thumbnail-overlay {
   position: absolute;
   top: 0;
@@ -451,12 +485,42 @@ button.danger:hover {
   opacity: 0;
   transition: opacity 0.2s ease;
   display: flex;
+  justify-content: space-between;
   align-items: flex-end;
   padding: 12px;
 }
 
 .media-thumbnail:hover .thumbnail-overlay {
   opacity: 1;
+}
+
+.thumbnail-open-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
+  border-radius: 6px;
+  color: #0a0a0a;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.thumbnail-open-btn:hover {
+  background: #fff;
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.thumbnail-open-btn:active {
+  transform: scale(0.95);
 }
 
 .thumbnail-info {
@@ -488,7 +552,7 @@ button.danger:hover {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 20px;
+  padding: 12px;
 }
 
 .bulk-actions-info {
@@ -564,12 +628,24 @@ button.danger:hover {
 }
 
 .bulk-actions-progress {
-  padding: 8px 20px;
+  padding: 8px 12px;
   background: rgba(255, 255, 255, 0.05);
   border-top: 1px solid #2a2a2a;
   text-align: center;
   font-size: 12px;
   color: #888;
+}
+
+.load-all-progress {
+  padding: 12px;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 6px;
+  margin: 12px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 500;
+  color: #60a5fa;
 }
 
 /* ============================================
@@ -581,7 +657,7 @@ button.danger:hover {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 60px 20px;
+  padding: 60px 12px;
   gap: 16px;
 }
 
@@ -618,14 +694,14 @@ button.danger:hover {
 }
 
 .loading-more {
-  padding: 20px;
+  padding: 16px 12px;
   text-align: center;
   color: #888;
   font-size: 12px;
 }
 
 .load-more-container {
-  padding: 20px;
+  padding: 16px 12px;
   text-align: center;
 }
 
@@ -633,8 +709,8 @@ button.danger:hover {
   background: rgba(255, 107, 107, 0.1);
   border: 1px solid rgba(255, 107, 107, 0.3);
   color: #ff6b6b;
-  padding: 12px 16px;
-  margin: 16px;
+  padding: 12px;
+  margin: 12px;
   border-radius: 8px;
   font-size: 12px;
   display: flex;
@@ -653,7 +729,7 @@ button.danger:hover {
 }
 
 .empty-state {
-  padding: 60px 20px;
+  padding: 60px 12px;
   text-align: center;
   color: #666;
 }

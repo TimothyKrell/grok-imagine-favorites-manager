@@ -4,7 +4,7 @@
  */
 
 import type { DownloadMessage, MediaItem, DownloadProgress, ChromeResponse } from './types';
-import type { BulkDownloadMessage, MediaPost, DownloadType } from './types/media';
+import type { BulkDownloadMessage, MediaPost, DownloadType, VideoInfo } from './types/media';
 import { DOWNLOAD_RATE_LIMIT_MS, DOWNLOAD_FOLDER } from './types';
 import { markAsDownloaded } from './utils/storage';
 
@@ -150,14 +150,27 @@ async function handleBulkDownload(posts: readonly MediaPost[], downloadType: Dow
       console.log('[Background] Added image:', imageFilename);
     }
 
-    // Add videos
-    if ((downloadType === 'videos' || downloadType === 'both') && post.videoUrls && post.videoUrls.length > 0) {
-      post.videoUrls.forEach((videoUrl: string, index: number): void => {
-        const videoFilename = `${postId}_video_${index + 1}.mp4`;
-        mediaItems.push({ url: videoUrl, filename: videoFilename });
-        videosDownloaded.push(videoUrl);
-        console.log('[Background] Added video:', videoFilename);
-      });
+    // Add videos (prefer HD URLs when available)
+    if (downloadType === 'videos' || downloadType === 'both') {
+      if (post.videos && post.videos.length > 0) {
+        // Use new video structure with HD support
+        post.videos.forEach((video: VideoInfo, index: number): void => {
+          const videoUrl = video.hdMediaUrl || video.mediaUrl; // Prefer HD
+          const quality = video.hdMediaUrl ? 'HD' : 'SD';
+          const videoFilename = `${postId}_video_${index + 1}_${quality}.mp4`;
+          mediaItems.push({ url: videoUrl, filename: videoFilename });
+          videosDownloaded.push(videoUrl);
+          console.log(`[Background] Added ${quality} video:`, videoFilename);
+        });
+      } else if (post.videoUrls && post.videoUrls.length > 0) {
+        // Fallback to legacy videoUrls
+        post.videoUrls.forEach((videoUrl: string, index: number): void => {
+          const videoFilename = `${postId}_video_${index + 1}.mp4`;
+          mediaItems.push({ url: videoUrl, filename: videoFilename });
+          videosDownloaded.push(videoUrl);
+          console.log('[Background] Added video (legacy):', videoFilename);
+        });
+      }
     }
 
     // Mark as downloaded in tracking

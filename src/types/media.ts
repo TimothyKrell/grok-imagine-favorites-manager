@@ -2,16 +2,27 @@
  * TypeScript types for Media API and storage
  */
 
+// HD Status Types
+export type HDStatus = 'all' | 'partial' | 'none' | 'unknown';
+
+// Video info with HD URL
+export interface VideoInfo {
+  readonly mediaUrl: string;
+  readonly hdMediaUrl?: string;
+}
+
 // API Response Types
 export interface MediaPost {
   readonly id: string;
   readonly imageUrl: string;
   readonly thumbnailUrl?: string;
-  readonly videoUrls?: readonly string[];
+  readonly videoUrls?: readonly string[]; // Legacy - kept for backward compatibility
+  readonly videos?: readonly VideoInfo[];
   readonly videoCount: number;
   readonly createdAt: number;
   readonly userId?: string;
   readonly prompt?: string;
+  hdStatus?: HDStatus;
 }
 
 export interface MediaListResponse {
@@ -52,9 +63,12 @@ export interface BulkActionsProps {
   readonly onDownloadImages: () => void;
   readonly onDownloadVideos: () => void;
   readonly onDownloadBoth: () => void;
+  readonly onUpscaleVideos: () => void;
   readonly onUnfavorite: () => void;
   readonly onDeselectAll: () => void;
   readonly isProcessing: boolean;
+  readonly isUpscaling?: boolean;
+  readonly upscaleProgress?: string;
 }
 
 // Download Types

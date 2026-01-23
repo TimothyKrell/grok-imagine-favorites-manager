@@ -58,6 +58,19 @@ const BulkActions: Component<BulkActionsProps> = (props) => {
               Both
             </button>
 
+            <button
+              class="bulk-action-btn"
+              onClick={props.onUpscaleVideos}
+              disabled={props.isProcessing || props.isUpscaling}
+              title="Upscale videos to HD"
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M2 2h5v5H2zM9 2h5v5H9zM2 9h5v5H2zM9 9h5v5H9z"/>
+                <path d="M12 12v2h2v-2h-2zM10 10v2h2v-2h-2z"/>
+              </svg>
+              Upscale
+            </button>
+
             <div class="bulk-actions-divider"></div>
 
             <button
@@ -86,6 +99,12 @@ const BulkActions: Component<BulkActionsProps> = (props) => {
         <Show when={props.isProcessing}>
           <div class="bulk-actions-progress">
             Processing...
+          </div>
+        </Show>
+
+        <Show when={props.isUpscaling}>
+          <div class="bulk-actions-progress">
+            {props.upscaleProgress || 'Upscaling videos...'}
           </div>
         </Show>
       </div>

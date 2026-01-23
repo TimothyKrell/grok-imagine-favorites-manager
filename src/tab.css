@@ -2,6 +2,12 @@
  * Styles for the full-screen tab view
  */
 
+/* Override body width for full-screen tab */
+body {
+  width: 100% !important;
+  max-width: none !important;
+}
+
 /* Tab Container */
 .tab-container {
   min-height: 100vh;
@@ -23,8 +29,7 @@
 }
 
 .tab-header-content {
-  max-width: 1600px;
-  margin: 0 auto;
+  width: 100%;
 }
 
 .tab-header h1 {
@@ -47,35 +52,82 @@
 /* Tab Content Wrapper */
 .tab-content-wrapper {
   flex: 1;
-  max-width: 1600px;
   width: 100%;
-  margin: 0 auto;
-  padding: 0 24px;
+  padding: 0;
 }
 
 /* Override media-grid for full-width view */
 .media-grid-fullwidth {
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)) !important;
-  gap: 16px !important;
-  padding: 24px 0;
+  gap: 20px !important;
+  padding: 24px 48px;
 }
 
-/* Responsive breakpoints for tab view */
-@media (min-width: 1400px) {
-  .media-grid-fullwidth {
+/* Small thumbnails */
+.media-grid-small {
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)) !important;
+}
+
+@media (min-width: 1600px) {
+  .media-grid-fullwidth.media-grid-small {
+    grid-template-columns: repeat(10, 1fr) !important;
+  }
+}
+
+@media (min-width: 1200px) and (max-width: 1599px) {
+  .media-grid-fullwidth.media-grid-small {
+    grid-template-columns: repeat(8, 1fr) !important;
+  }
+}
+
+@media (min-width: 900px) and (max-width: 1199px) {
+  .media-grid-fullwidth.media-grid-small {
     grid-template-columns: repeat(6, 1fr) !important;
   }
 }
 
-@media (min-width: 1200px) and (max-width: 1399px) {
-  .media-grid-fullwidth {
+/* Medium thumbnails (default) */
+.media-grid-medium {
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)) !important;
+}
+
+@media (min-width: 1600px) {
+  .media-grid-fullwidth.media-grid-medium {
+    grid-template-columns: repeat(7, 1fr) !important;
+  }
+}
+
+@media (min-width: 1200px) and (max-width: 1599px) {
+  .media-grid-fullwidth.media-grid-medium {
     grid-template-columns: repeat(5, 1fr) !important;
   }
 }
 
 @media (min-width: 900px) and (max-width: 1199px) {
-  .media-grid-fullwidth {
+  .media-grid-fullwidth.media-grid-medium {
     grid-template-columns: repeat(4, 1fr) !important;
+  }
+}
+
+/* Large thumbnails */
+.media-grid-large {
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)) !important;
+}
+
+@media (min-width: 1600px) {
+  .media-grid-fullwidth.media-grid-large {
+    grid-template-columns: repeat(5, 1fr) !important;
+  }
+}
+
+@media (min-width: 1200px) and (max-width: 1599px) {
+  .media-grid-fullwidth.media-grid-large {
+    grid-template-columns: repeat(4, 1fr) !important;
+  }
+}
+
+@media (min-width: 900px) and (max-width: 1199px) {
+  .media-grid-fullwidth.media-grid-large {
+    grid-template-columns: repeat(3, 1fr) !important;
   }
 }
 
@@ -83,6 +135,59 @@
   .media-grid-fullwidth {
     grid-template-columns: repeat(3, 1fr) !important;
   }
+}
+
+/* Size Selector */
+.size-selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid #2a2a2a;
+  border-radius: 6px;
+}
+
+.size-selector-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #888;
+  margin: 0;
+}
+
+.size-selector-buttons {
+  display: flex;
+  gap: 4px;
+}
+
+.size-btn {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid #2a2a2a;
+  border-radius: 4px;
+  color: #888;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.size-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: #3a3a3a;
+  color: #ccc;
+}
+
+.size-btn.active {
+  background: rgba(59, 130, 246, 0.2);
+  border-color: rgba(59, 130, 246, 0.5);
+  color: #60a5fa;
+}
+
+.size-btn.active:hover {
+  background: rgba(59, 130, 246, 0.3);
 }
 
 /* Tab Footer */
@@ -113,7 +218,7 @@
 
 /* Adjust media grid header for tab view */
 .tab-container .media-grid-header {
-  padding: 24px 0;
+  padding: 24px 48px;
   border-bottom: 1px solid #2a2a2a;
   margin-bottom: 0;
 }
@@ -122,8 +227,8 @@
 .tab-container .bulk-actions-toolbar {
   position: sticky;
   top: 97px; /* Below the tab header */
-  margin: 0 -24px;
-  padding: 16px 24px;
+  margin: 0;
+  padding: 16px 48px;
 }
 
 /* Make the whole media grid tab look better in full screen */
@@ -134,10 +239,30 @@
 
 /* Empty state styling for tab */
 .tab-container .empty-state {
-  padding: 120px 20px;
+  padding: 120px 48px;
 }
 
 /* Loading container for tab */
 .tab-container .loading-container {
-  padding: 120px 20px;
+  padding: 120px 48px;
+}
+
+/* Load all progress for tab */
+.tab-container .load-all-progress {
+  margin: 12px 48px;
+}
+
+/* Error message for tab */
+.tab-container .error-message {
+  margin: 12px 48px;
+}
+
+/* Load more container for tab */
+.tab-container .load-more-container {
+  padding: 16px 48px;
+}
+
+/* Loading more for tab */
+.tab-container .loading-more {
+  padding: 16px 48px;
 }
