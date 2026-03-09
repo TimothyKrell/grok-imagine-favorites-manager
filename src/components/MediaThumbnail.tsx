@@ -7,6 +7,14 @@ import { type Component } from 'solid-js';
 import type { MediaThumbnailProps } from '../types/media';
 
 const MediaThumbnail: Component<MediaThumbnailProps> = (props) => {
+  const tagCount = () => props.post.tags?.length || 0;
+  const tagLabel = () => {
+    const tags = props.post.tags || [];
+    if (tags.length === 0) return '';
+    if (tags.length === 1) return tags[0] || 'Tagged';
+    return `${tags[0] || 'Tagged'} +${tags.length - 1}`;
+  };
+
   const handleCheckboxChange = (e: Event) => {
     e.stopPropagation();
     const mouseEvent = e as MouseEvent;
@@ -54,6 +62,15 @@ const MediaThumbnail: Component<MediaThumbnailProps> = (props) => {
       {props.isDownloaded && (
         <div class="thumbnail-downloaded-badge">
           ✓
+        </div>
+      )}
+
+      {tagCount() > 0 && (
+        <div class="thumbnail-tagged-badge" title={`Folders: ${(props.post.tags || []).join(', ')}`}>
+          <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M2 3.5A1.5 1.5 0 0 1 3.5 2h4.8c.4 0 .78.16 1.06.44l4.2 4.2a1.5 1.5 0 0 1 0 2.12l-4.8 4.8a1.5 1.5 0 0 1-2.12 0l-4.2-4.2A1.5 1.5 0 0 1 2 8.28V3.5zm3 .5a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"/>
+          </svg>
+          <span>{tagLabel()}</span>
         </div>
       )}
 

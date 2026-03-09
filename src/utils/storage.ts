@@ -5,6 +5,7 @@
 import type { DownloadedMediaInfo } from '../types/media';
 
 const STORAGE_KEY = 'downloadedMedia';
+const SKIP_TAGGED_DELETE_KEY = 'skipTaggedDelete';
 
 /**
  * Get all downloaded media tracking data
@@ -106,4 +107,26 @@ export async function clearAllDownloadTracking(): Promise<void> {
 export async function getDownloadedCount(): Promise<number> {
   const downloaded = await getDownloadedMedia();
   return Object.keys(downloaded).length;
+}
+
+/**
+ * Get tagged favorites delete protection preference
+ */
+export async function getSkipTaggedDeletePreference(): Promise<boolean> {
+  return new Promise((resolve) => {
+    chrome.storage.local.get([SKIP_TAGGED_DELETE_KEY], (result) => {
+      resolve(result[SKIP_TAGGED_DELETE_KEY] !== false);
+    });
+  });
+}
+
+/**
+ * Save tagged favorites delete protection preference
+ */
+export async function setSkipTaggedDeletePreference(enabled: boolean): Promise<void> {
+  return new Promise((resolve) => {
+    chrome.storage.local.set({ [SKIP_TAGGED_DELETE_KEY]: enabled }, () => {
+      resolve();
+    });
+  });
 }

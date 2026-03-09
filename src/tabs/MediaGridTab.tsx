@@ -5,8 +5,8 @@
 import { createSignal, createMemo, onMount, For, Show, type Component } from 'solid-js';
 import MediaThumbnail from '../components/MediaThumbnail';
 import BulkActions from '../components/BulkActions';
-import { fetchMediaPosts, unfavoritePosts, deletePosts, upscaleVideos, checkPostsHDStatus } from '../utils/api';
-import { getDownloadedMedia, clearAllDownloadTracking } from '../utils/storage';
+import { fetchMediaPosts, hydratePostsWithFolders, unfavoritePosts, deletePosts, upscaleVideos, checkPostsHDStatus } from '../utils/api';
+import { getDownloadedMedia, clearAllDownloadTracking, getSkipTaggedDeletePreference, setSkipTaggedDeletePreference } from '../utils/storage';
 import type { MediaPost, DownloadType } from '../types/media';
 
 interface MediaGridTabProps {
@@ -33,6 +33,7 @@ const MediaGridTab: Component<MediaGridTabProps> = (props) => {
   const [loadAllProgress, setLoadAllProgress] = createSignal<string>('');
   const [thumbnailSize, setThumbnailSize] = createSignal<'small' | 'medium' | 'large'>('medium');
   const [lastSelectedIndex, setLastSelectedIndex] = createSignal<number>(-1);
+  const [skipTaggedDeletes, setSkipTaggedDeletes] = createSignal<boolean>(true);
 
   /**
    * Sorted posts based on current sort order (client-side)
@@ -50,6 +51,24 @@ const MediaGridTab: Component<MediaGridTabProps> = (props) => {
       }
     });
   });
+
+  const taggedPostCount = createMemo(() => posts().filter((post) => (post.tags?.length || 0) > 0).length);
+
+  const mergeHydratedPosts = (hydratedPosts: MediaPost[]) => {
+    const hydratedById = new Map(hydratedPosts.map((post) => [post.id, post]));
+    setPosts((currentPosts) => currentPosts.map((post) => hydratedById.get(post.id) || post));
+  };
+
+  const hydrateVisiblePosts = async (postsToHydrate: MediaPost[]) => {
+    if (postsToHydrate.length === 0) return;
+
+    try {
+      const hydratedPosts = await hydratePostsWithFolders(postsToHydrate);
+      mergeHydratedPosts(hydratedPosts);
+    } catch (err) {
+      console.error('Error hydrating post folders:', err);
+    }
+  };
 
   /**
    * Check HD status for posts with videos
@@ -113,6 +132,7 @@ const MediaGridTab: Component<MediaGridTabProps> = (props) => {
 
       // Check HD status in background (non-blocking)
       checkHDStatus(newPosts);
+      void hydrateVisiblePosts(newPosts);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load media';
       setError(errorMessage);
@@ -249,11 +269,22 @@ const MediaGridTab: Component<MediaGridTabProps> = (props) => {
       
       // Check HD status in background
       checkHDStatus(allPosts);
-      
-      // Clear progress after 2 seconds
-      setTimeout(() => {
-        setLoadAllProgress('');
-      }, 2000);
+      setLoadAllProgress(`Complete! Loaded ${allPosts.length} items from ${pageCount} pages. Checking folders...`);
+      void hydratePostsWithFolders(allPosts)
+        .then((hydratedPosts) => {
+          mergeHydratedPosts(hydratedPosts);
+          setLoadAllProgress(`Complete! Loaded ${allPosts.length} items from ${pageCount} pages.`);
+          setTimeout(() => {
+            setLoadAllProgress('');
+          }, 2000);
+        })
+        .catch((error) => {
+          console.error('Error hydrating all post folders:', error);
+          setLoadAllProgress(`Complete! Loaded ${allPosts.length} items from ${pageCount} pages.`);
+          setTimeout(() => {
+            setLoadAllProgress('');
+          }, 2000);
+        });
 
     } catch (err) {
       console.error('Error loading all posts:', err);
@@ -271,6 +302,8 @@ const MediaGridTab: Component<MediaGridTabProps> = (props) => {
     const selected = selectedPostIds();
     return posts().filter(post => selected.has(post.id));
   };
+
+  const taggedSelectedCount = createMemo(() => getSelectedPosts().filter((post) => (post.tags?.length || 0) > 0).length);
 
   /**
    * Download selected items
@@ -354,31 +387,42 @@ const MediaGridTab: Component<MediaGridTabProps> = (props) => {
    * Delete and unlike selected items
    */
   const deleteSelected = async () => {
-    const selected = Array.from(selectedPostIds());
-    if (selected.length === 0) return;
+    const selectedPosts = getSelectedPosts();
+    if (selectedPosts.length === 0) return;
+
+    const taggedCount = selectedPosts.filter((post) => (post.tags?.length || 0) > 0).length;
+    const protectTagged = skipTaggedDeletes();
+    const taggedDeleteMessage = protectTagged
+      ? taggedCount > 0
+        ? `${taggedCount} tagged item${taggedCount === 1 ? '' : 's'} will be skipped.`
+        : 'Tagged items will be skipped.'
+      : taggedCount > 0
+        ? `${taggedCount} tagged item${taggedCount === 1 ? '' : 's'} will also be deleted.`
+        : '';
 
     const confirmed = confirm(
-      `Are you sure you want to delete and unlike ${selected.length} item${selected.length === 1 ? '' : 's'}?\n\nThis action cannot be undone.`
+      `Are you sure you want to delete and unlike ${selectedPosts.length} item${selectedPosts.length === 1 ? '' : 's'}?${taggedDeleteMessage ? `\n\n${taggedDeleteMessage}` : ''}\n\nThis action cannot be undone.`
     );
     if (!confirmed) return;
 
     setIsProcessing(true);
     setIsDeleting(true);
-    setDeleteProgress('Starting...');
+    setDeleteProgress(protectTagged ? 'Checking folders...' : 'Starting...');
 
     try {
-      const result = await deletePosts(selected, (completed, total) => {
-        setDeleteProgress(`Deleting ${completed}/${total} items...`);
+      const result = await deletePosts(selectedPosts, protectTagged, (completed, total) => {
+        setDeleteProgress(`Deleting ${completed}/${total} ${protectTagged ? 'untagged ' : ''}items...`);
       });
 
-      if (result.success > 0) {
-        setPosts(posts().filter(post => !selected.includes(post.id)));
-        deselectAll();
+      if (result.deletedIds.length > 0) {
+        setPosts(posts().filter(post => !result.deletedIds.includes(post.id)));
       }
 
-      if (result.failed > 0) {
-        alert(`Delete complete with partial failures.\n\nSucceeded: ${result.success}\nFailed: ${result.failed}`);
+      if (result.skipped > 0 || result.failed > 0) {
+        alert(`Delete complete.\n\nDeleted: ${result.success}\nSkipped (tagged): ${result.skipped}\nFailed: ${result.failed}`);
       }
+
+      setSelectedPostIds(new Set<string>([...result.skippedTaggedIds, ...result.failedIds]));
 
       setDeleteProgress('');
     } catch (err) {
@@ -461,6 +505,17 @@ const MediaGridTab: Component<MediaGridTabProps> = (props) => {
     }
   };
 
+  const toggleSkipTaggedDeletes = async () => {
+    const nextValue = !skipTaggedDeletes();
+    setSkipTaggedDeletes(nextValue);
+
+    try {
+      await setSkipTaggedDeletePreference(nextValue);
+    } catch (err) {
+      console.error('Error saving tagged delete preference:', err);
+    }
+  };
+
   /**
    * Load more posts (pagination)
    */
@@ -474,6 +529,9 @@ const MediaGridTab: Component<MediaGridTabProps> = (props) => {
   onMount(() => {
     loadPosts();
     loadDownloadedTracking();
+    void getSkipTaggedDeletePreference().then(setSkipTaggedDeletes).catch((err) => {
+      console.error('Error loading tagged delete preference:', err);
+    });
   });
 
   return (
@@ -483,7 +541,7 @@ const MediaGridTab: Component<MediaGridTabProps> = (props) => {
         <div class="media-grid-title">
           <h3>Media Browser</h3>
           <p class="media-grid-subtitle">
-            {posts().length} item{posts().length === 1 ? '' : 's'} loaded • Sorted by {sortOrder() === 'newest' ? 'Newest' : 'Oldest'}
+            {posts().length} item{posts().length === 1 ? '' : 's'} loaded • {taggedPostCount()} tagged • Sorted by {sortOrder() === 'newest' ? 'Newest' : 'Oldest'}
           </p>
         </div>
         
@@ -532,6 +590,13 @@ const MediaGridTab: Component<MediaGridTabProps> = (props) => {
           <button class="btn-secondary" onClick={selectAll} disabled={posts().length === 0}>
             Select All
           </button>
+          <button
+            class={`btn-secondary btn-toggle ${skipTaggedDeletes() ? 'active' : ''}`}
+            onClick={toggleSkipTaggedDeletes}
+            title="Toggle delete protection for tagged favorites"
+          >
+            {skipTaggedDeletes() ? 'Protect Tagged: On' : 'Protect Tagged: Off'}
+          </button>
           <button class="btn-primary" onClick={loadAllPosts} disabled={isLoading() || isLoadingAll()}>
             {isLoadingAll() ? 'Loading All...' : 'Load All'}
           </button>
@@ -569,6 +634,12 @@ const MediaGridTab: Component<MediaGridTabProps> = (props) => {
         isDeleting={isDeleting()}
         deleteProgress={deleteProgress()}
       />
+
+      <Show when={selectedPostIds().size > 0 && taggedSelectedCount() > 0}>
+        <div class="tagged-selection-note">
+          {taggedSelectedCount()} selected item{taggedSelectedCount() === 1 ? '' : 's'} tagged {skipTaggedDeletes() ? 'and protected from delete' : 'and will be deleted'}.
+        </div>
+      </Show>
 
       {/* Error Message */}
       <Show when={error()}>

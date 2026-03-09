@@ -22,6 +22,7 @@ export interface MediaPost {
   readonly createdAt: number;
   readonly userId?: string;
   readonly prompt?: string;
+  readonly tags?: readonly string[];
   hdStatus?: HDStatus;
 }
 

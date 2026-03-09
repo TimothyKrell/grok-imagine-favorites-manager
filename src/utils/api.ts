@@ -99,6 +99,7 @@ function parseMediaListResponse(data: any): MediaListResponse {
       createdAt: item.createTime ? new Date(item.createTime).getTime() : Date.now(),
       userId: item.userId,
       prompt: item.prompt || item.originalPrompt || '',
+      tags: [],
     };
     
     posts.push(post);
@@ -125,6 +126,98 @@ function resolveAssetPreviewUrl(item: any): string | undefined {
   }
 
   return previewImageUrl || contentUrl;
+}
+
+function uniqueStrings(values: readonly string[]): string[] {
+  return [...new Set(values.filter(Boolean))];
+}
+
+interface PostFolder {
+  readonly id: string;
+  readonly name: string;
+}
+
+/**
+ * Fetch folders/tags for a single media post
+ */
+export async function fetchPostFolders(postId: string): Promise<readonly PostFolder[]> {
+  try {
+    const response = await fetch(`${API_BASE}/post/folders`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': '*/*',
+      },
+      credentials: 'include',
+      body: JSON.stringify({ postId }),
+    });
+
+    if (response.status === 401 || response.status === 403) {
+      throw new Error('Not authenticated. Please log into grok.com first.');
+    }
+
+    if (!response.ok) {
+      throw new Error(`Folder request failed: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    const folders = Array.isArray(data.folders) ? data.folders : [];
+
+    return folders
+      .filter((folder: any) => typeof folder?.name === 'string' && folder.name.trim().length > 0)
+      .map((folder: any) => ({
+        id: folder.id,
+        name: folder.name.trim(),
+      }));
+  } catch (error) {
+    console.error(`Failed to fetch folders for post ${postId}:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Hydrate posts with folder/tag names
+ */
+export async function hydratePostsWithFolders(
+  posts: readonly MediaPost[],
+  onProgress?: (completed: number, total: number) => void
+): Promise<MediaPost[]> {
+  const BATCH_SIZE = 10;
+  const hydratedPosts: MediaPost[] = [];
+  let completed = 0;
+
+  for (let i = 0; i < posts.length; i += BATCH_SIZE) {
+    const batch = posts.slice(i, i + BATCH_SIZE);
+    const batchResults = await Promise.all(
+      batch.map(async (post) => {
+        try {
+          const folders = await fetchPostFolders(post.id);
+          return {
+            ...post,
+            tags: uniqueStrings(folders.map((folder) => folder.name)),
+          } satisfies MediaPost;
+        } catch (_error) {
+          return {
+            ...post,
+            tags: post.tags || [],
+          } satisfies MediaPost;
+        }
+      })
+    );
+
+    hydratedPosts.push(...batchResults);
+    completed += batch.length;
+
+    if (onProgress) {
+      onProgress(completed, posts.length);
+    }
+
+    if (i + BATCH_SIZE < posts.length) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+  }
+
+  return hydratedPosts;
 }
 
 /**
@@ -306,17 +399,35 @@ export async function deleteAndUnlikePost(postId: string): Promise<boolean> {
  * Delete and unlike multiple posts with batch processing and progress tracking
  */
 export async function deletePosts(
-  postIds: readonly string[],
+  posts: readonly MediaPost[],
+  skipTagged: boolean = true,
   onProgress?: (completed: number, total: number) => void
-): Promise<{ success: number; failed: number }> {
+): Promise<{ success: number; failed: number; skipped: number; deletedIds: string[]; skippedTaggedIds: string[]; failedIds: string[] }> {
   let success = 0;
   let failed = 0;
-  const total = postIds.length;
+  let skipped = 0;
+  const deletedIds: string[] = [];
+  const skippedTaggedIds: string[] = [];
+  const failedIds: string[] = [];
+  const postsWithFolders = skipTagged ? await hydratePostsWithFolders(posts) : [...posts];
+  const deletablePostIds = postsWithFolders
+    .filter((post) => {
+      const hasTags = (post.tags?.length || 0) > 0;
+      const shouldSkip = skipTagged && hasTags;
+      if (shouldSkip) {
+        skipped++;
+        skippedTaggedIds.push(post.id);
+      }
+      return !shouldSkip;
+    })
+    .map((post) => post.id);
+
+  const total = deletablePostIds.length;
   const BATCH_SIZE = 10;
   let completed = 0;
 
-  for (let i = 0; i < postIds.length; i += BATCH_SIZE) {
-    const batch = postIds.slice(i, i + BATCH_SIZE);
+  for (let i = 0; i < deletablePostIds.length; i += BATCH_SIZE) {
+    const batch = deletablePostIds.slice(i, i + BATCH_SIZE);
 
     const results = await Promise.all(
       batch.map(async (postId) => {
@@ -327,23 +438,31 @@ export async function deletePosts(
       })
     );
 
-    for (const result of results) {
+    for (let index = 0; index < results.length; index++) {
+      const result = results[index];
+      const postId = batch[index];
       if (result) {
         success++;
+        if (postId) {
+          deletedIds.push(postId);
+        }
       } else {
         failed++;
+        if (postId) {
+          failedIds.push(postId);
+        }
       }
       completed++;
 
       if (onProgress) onProgress(completed, total);
     }
 
-    if (i + BATCH_SIZE < postIds.length) {
+    if (i + BATCH_SIZE < deletablePostIds.length) {
       await new Promise(resolve => setTimeout(resolve, 100));
     }
   }
 
-  return { success, failed };
+  return { success, failed, skipped, deletedIds, skippedTaggedIds, failedIds };
 }
 
 /**
