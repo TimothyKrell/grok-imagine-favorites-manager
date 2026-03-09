@@ -1,6 +1,6 @@
 # Development Guide
 
-This extension uses Vite + Bun for blazing fast development with hot module reloading (HMR).
+This extension uses Vite + Bun for fast development. The default `dev` command runs a stable watch build.
 
 ## Quick Start
 
@@ -8,8 +8,11 @@ This extension uses Vite + Bun for blazing fast development with hot module relo
 # Install dependencies
 bun install
 
-# Start development server with hot reload
+# Start stable watch build
 bun run dev
+
+# Optional: start HMR dev server (can be flaky in some Chrome setups)
+bun run dev:hmr
 
 # Build for production
 bun run build
@@ -37,7 +40,7 @@ grok-imagine-favorites-manager/
    ```bash
    bun run dev
    ```
-   This starts Vite in development mode with automatic reloading.
+   This runs `vite build --watch` and rebuilds `dist/` on every change.
 
 2. **Load the extension in Chrome:**
    - Navigate to `chrome://extensions/`
@@ -47,24 +50,19 @@ grok-imagine-favorites-manager/
 
 3. **Make changes:**
    - Edit any file in the `src` folder
-   - The extension will automatically reload in the browser
-   - Check the Vite terminal for build errors
+   - Click reload for the extension in `chrome://extensions` after changes
+   - Check the terminal for build errors
 
 ## Available Scripts
 
-- `bun run dev` - Start development server with hot reload
+- `bun run dev` - Stable watch build for extension development
+- `bun run dev:hmr` - HMR development server (CRXJS/Vite)
 - `bun run build` - Create production build
 - `bun run preview` - Preview production build
 
-## Hot Reload
+## HMR (Optional)
 
-The @crxjs/vite-plugin provides automatic hot reloading for:
-- ✅ Popup HTML/JS/CSS changes
-- ✅ Content script changes
-- ✅ Background script changes
-- ✅ Manifest changes
-
-No need to manually reload the extension after changes!
+If `bun run dev:hmr` works in your environment, @crxjs/vite-plugin provides automatic reloading for popup/content/background/manifest changes.
 
 ## Building for Production
 

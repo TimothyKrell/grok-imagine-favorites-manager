@@ -432,6 +432,24 @@ button.danger:hover {
   transform: scale(1.05);
 }
 
+.thumbnail-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #888;
+  background: linear-gradient(180deg, #171717 0%, #101010 100%);
+}
+
+.thumbnail-placeholder span {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+}
+
 .thumbnail-video-badge {
   position: absolute;
   bottom: 8px;
@@ -446,6 +464,36 @@ button.danger:hover {
   align-items: center;
   gap: 4px;
   font-size: 11px;
+  font-weight: 600;
+}
+
+.thumbnail-file-badge {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  z-index: 10;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(8px);
+  color: #fff;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.thumbnail-dimensions-badge {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  z-index: 10;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(8px);
+  color: #fff;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 10px;
   font-weight: 600;
 }
 
@@ -536,6 +584,20 @@ button.danger:hover {
   font-size: 10px;
   font-weight: 500;
   letter-spacing: 0.5px;
+}
+
+.thumbnail-info-wide {
+  max-width: 100%;
+}
+
+.thumbnail-name {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 600;
+  margin-bottom: 4px;
 }
 
 .thumbnail-id {

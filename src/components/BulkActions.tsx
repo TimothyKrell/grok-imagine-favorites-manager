@@ -86,6 +86,18 @@ const BulkActions: Component<BulkActionsProps> = (props) => {
             </button>
 
             <button
+              class="bulk-action-btn danger"
+              onClick={props.onDeletePosts}
+              disabled={props.isProcessing}
+              title="Delete and unlike selected posts"
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M5 2h6l1 1h3v2H1V3h3l1-1zm-2 4h10l-1 8H4L3 6z"/>
+              </svg>
+              Delete
+            </button>
+
+            <button
               class="bulk-action-btn secondary"
               onClick={props.onDeselectAll}
               disabled={props.isProcessing}
@@ -96,7 +108,7 @@ const BulkActions: Component<BulkActionsProps> = (props) => {
           </div>
         </div>
 
-        <Show when={props.isProcessing && !props.isUpscaling && !props.isUnfavoriting}>
+        <Show when={props.isProcessing && !props.isUpscaling && !props.isUnfavoriting && !props.isDeleting}>
           <div class="bulk-actions-progress">
             Processing...
           </div>
@@ -111,6 +123,12 @@ const BulkActions: Component<BulkActionsProps> = (props) => {
         <Show when={props.isUnfavoriting}>
           <div class="bulk-actions-progress">
             {props.unfavoriteProgress || 'Unfavoriting items...'}
+          </div>
+        </Show>
+
+        <Show when={props.isDeleting}>
+          <div class="bulk-actions-progress">
+            {props.deleteProgress || 'Deleting items...'}
           </div>
         </Show>
       </div>

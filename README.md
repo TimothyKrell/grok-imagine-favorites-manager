@@ -39,9 +39,9 @@ A modern Chrome extension to download and manage your favorited Grok Imagine ima
 
 ## Installation
 
-### Development Setup (With Hot Reload)
+### Development Setup
 
-For development with automatic hot reloading:
+For stable extension development:
 
 1. **Clone the Repository**
    ```bash
@@ -54,18 +54,24 @@ For development with automatic hot reloading:
    bun install
    ```
 
-3. **Start Development Server**
+3. **Start Development Watch Build**
    ```bash
    bun run dev
    ```
-   This will start Vite in watch mode, and changes will automatically reload in the browser.
+   This rebuilds `dist/` whenever source files change.
 
 4. **Load Extension in Chrome**
    - Open Chrome and navigate to `chrome://extensions/`
    - Enable **Developer mode** (toggle in top-right)
    - Click **"Load unpacked"**
    - Select the `dist` folder that was created by Vite
-   - The extension will automatically reload when you make changes!
+   - Click reload for the extension after changes in `chrome://extensions`
+
+Optional HMR mode (if supported by your local browser setup):
+
+```bash
+bun run dev:hmr
+```
 
 ### Production Build
 

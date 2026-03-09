@@ -4,20 +4,22 @@
 
 import { createSignal, Show, type Component } from 'solid-js';
 import LegacyTab from './tabs/LegacyTab';
+import FilesGridTab from './tabs/FilesGridTab';
 import MediaGridTab from './tabs/MediaGridTab';
 import './popup.css';
 
-type TabType = 'legacy' | 'media-grid';
+type TabType = 'favorites' | 'files' | 'legacy';
 
 const Popup: Component = () => {
-  const [activeTab, setActiveTab] = createSignal<TabType>('media-grid');
+  const [activeTab, setActiveTab] = createSignal<TabType>('favorites');
 
   /**
    * Open Media Browser in a new full-screen tab
    * Reuses existing tab if already open
    */
   const openInFullScreen = (): void => {
-    const tabUrl: string = chrome.runtime.getURL('src/tab.html');
+    const preferredView = activeTab() === 'files' ? 'files' : 'favorites';
+    const tabUrl: string = chrome.runtime.getURL(`src/tab.html?view=${preferredView}`);
     
     // Try to find existing tab
     chrome.tabs.query({ url: tabUrl }, (tabs: chrome.tabs.Tab[]): void => {
@@ -39,7 +41,7 @@ const Popup: Component = () => {
           <div>
             <h3>Grok Imagine Favorites Manager</h3>
             <div class="subtitle">
-              Download and manage your favorites
+              Manage favorites and uploaded files
             </div>
           </div>
           <button class="open-fullscreen-btn" onClick={openInFullScreen} title="Open Media Browser in full screen">
@@ -54,10 +56,16 @@ const Popup: Component = () => {
       {/* Tab Navigation */}
       <div class="tab-navigation">
         <button
-          class={`tab-button ${activeTab() === 'media-grid' ? 'active' : ''}`}
-          onClick={() => setActiveTab('media-grid')}
+          class={`tab-button ${activeTab() === 'favorites' ? 'active' : ''}`}
+          onClick={() => setActiveTab('favorites')}
         >
-          Media Browser
+          Favorites
+        </button>
+        <button
+          class={`tab-button ${activeTab() === 'files' ? 'active' : ''}`}
+          onClick={() => setActiveTab('files')}
+        >
+          Files
         </button>
         <button
           class={`tab-button ${activeTab() === 'legacy' ? 'active' : ''}`}
@@ -69,8 +77,12 @@ const Popup: Component = () => {
 
       {/* Tab Content */}
       <div class="tab-content">
-        <Show when={activeTab() === 'media-grid'}>
+        <Show when={activeTab() === 'favorites'}>
           <MediaGridTab />
+        </Show>
+
+        <Show when={activeTab() === 'files'}>
+          <FilesGridTab />
         </Show>
         
         <Show when={activeTab() === 'legacy'}>

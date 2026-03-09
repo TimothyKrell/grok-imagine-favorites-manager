@@ -56,6 +56,10 @@ body {
   padding: 0;
 }
 
+.tab-container .tab-navigation {
+  padding: 0 48px;
+}
+
 /* Override media-grid for full-width view */
 .media-grid-fullwidth {
   gap: 20px !important;

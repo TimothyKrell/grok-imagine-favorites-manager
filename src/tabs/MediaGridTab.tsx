@@ -5,7 +5,7 @@
 import { createSignal, createMemo, onMount, For, Show, type Component } from 'solid-js';
 import MediaThumbnail from '../components/MediaThumbnail';
 import BulkActions from '../components/BulkActions';
-import { fetchMediaPosts, unfavoritePosts, upscaleVideos, checkPostsHDStatus } from '../utils/api';
+import { fetchMediaPosts, unfavoritePosts, deletePosts, upscaleVideos, checkPostsHDStatus } from '../utils/api';
 import { getDownloadedMedia, clearAllDownloadTracking } from '../utils/storage';
 import type { MediaPost, DownloadType } from '../types/media';
 
@@ -23,6 +23,8 @@ const MediaGridTab: Component<MediaGridTabProps> = (props) => {
   const [upscaleProgress, setUpscaleProgress] = createSignal<string>('');
   const [isUnfavoriting, setIsUnfavoriting] = createSignal<boolean>(false);
   const [unfavoriteProgress, setUnfavoriteProgress] = createSignal<string>('');
+  const [isDeleting, setIsDeleting] = createSignal<boolean>(false);
+  const [deleteProgress, setDeleteProgress] = createSignal<string>('');
   const [error, setError] = createSignal<string>('');
   const [nextCursor, setNextCursor] = createSignal<string | undefined>(undefined);
   const [hasMore, setHasMore] = createSignal<boolean>(false);
@@ -349,6 +351,47 @@ const MediaGridTab: Component<MediaGridTabProps> = (props) => {
   };
 
   /**
+   * Delete and unlike selected items
+   */
+  const deleteSelected = async () => {
+    const selected = Array.from(selectedPostIds());
+    if (selected.length === 0) return;
+
+    const confirmed = confirm(
+      `Are you sure you want to delete and unlike ${selected.length} item${selected.length === 1 ? '' : 's'}?\n\nThis action cannot be undone.`
+    );
+    if (!confirmed) return;
+
+    setIsProcessing(true);
+    setIsDeleting(true);
+    setDeleteProgress('Starting...');
+
+    try {
+      const result = await deletePosts(selected, (completed, total) => {
+        setDeleteProgress(`Deleting ${completed}/${total} items...`);
+      });
+
+      if (result.success > 0) {
+        setPosts(posts().filter(post => !selected.includes(post.id)));
+        deselectAll();
+      }
+
+      if (result.failed > 0) {
+        alert(`Delete complete with partial failures.\n\nSucceeded: ${result.success}\nFailed: ${result.failed}`);
+      }
+
+      setDeleteProgress('');
+    } catch (err) {
+      console.error('Error deleting:', err);
+      alert('Failed to delete items. Please try again.');
+    } finally {
+      setIsProcessing(false);
+      setIsDeleting(false);
+      setDeleteProgress('');
+    }
+  };
+
+  /**
    * Upscale selected videos
    */
   const upscaleSelected = async () => {
@@ -516,12 +559,15 @@ const MediaGridTab: Component<MediaGridTabProps> = (props) => {
         onDownloadBoth={() => downloadSelected('both')}
         onUpscaleVideos={upscaleSelected}
         onUnfavorite={unfavoriteSelected}
+        onDeletePosts={deleteSelected}
         onDeselectAll={deselectAll}
         isProcessing={isProcessing()}
         isUpscaling={isUpscaling()}
         upscaleProgress={upscaleProgress()}
         isUnfavoriting={isUnfavoriting()}
         unfavoriteProgress={unfavoriteProgress()}
+        isDeleting={isDeleting()}
+        deleteProgress={deleteProgress()}
       />
 
       {/* Error Message */}

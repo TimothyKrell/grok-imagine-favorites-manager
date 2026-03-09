@@ -65,12 +65,15 @@ export interface BulkActionsProps {
   readonly onDownloadBoth: () => void;
   readonly onUpscaleVideos: () => void;
   readonly onUnfavorite: () => void;
+  readonly onDeletePosts: () => void;
   readonly onDeselectAll: () => void;
   readonly isProcessing: boolean;
   readonly isUpscaling?: boolean;
   readonly upscaleProgress?: string;
   readonly isUnfavoriting?: boolean;
   readonly unfavoriteProgress?: string;
+  readonly isDeleting?: boolean;
+  readonly deleteProgress?: string;
 }
 
 // Download Types
